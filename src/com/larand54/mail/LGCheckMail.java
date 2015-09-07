@@ -88,7 +88,7 @@ public class LGCheckMail {
             /*  Mention the folder name which you want to read. */
             inbox = store.getFolder(aFolder);//("Arbete/carmak");//("Inbox");
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-            System.out.println("No of Unread Messages : " + 
+            System.out.println("Folder: "+aFolder+" - No of Unread Messages : " + 
                     "("+inbox.getUnreadMessageCount()+").  Kl: " + 
                     sdf.format(new Date(System.currentTimeMillis())));
 
@@ -113,11 +113,13 @@ public class LGCheckMail {
                 ex.printStackTrace();
             }
         } catch (NoSuchProviderException e) {
+            System.out.println("NoSuchProviderException");
             e.printStackTrace();
             System.exit(1);
         } catch (MessagingException e) {
-            e.printStackTrace();
-            System.exit(2);
+            System.out.println("MessagingException");
+            System.out.println(e.getMessage());
+//            System.exit(2);
         }
     }
 
