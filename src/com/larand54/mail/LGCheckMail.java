@@ -122,8 +122,13 @@ public class LGCheckMail {
     }
 
     public void printAllMessages(Message[] msgs) throws Exception {
+        String from;
+        Address[] a;
         for (int i = 0; i < msgs.length; i++) {
-            System.out.println("MESSAGE #" + (i + 1) + ":");
+            a = msgs[i].getFrom();
+            from = a == null ? null : ((InternetAddress) a[0]).getAddress();
+
+            System.out.println("MESSAGE #" + (i + 1) + ":" + " From: "+ from + " Subject: "+msgs[i].getSubject());
             printEnvelope(msgs[i],i,msgs.length);
         }
     }
