@@ -5,9 +5,20 @@
  */
 package com.larand54.mail;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
+import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.mail.Address;
 import javax.mail.FetchProfile;
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -16,16 +27,21 @@ import javax.mail.MessagingException;
 import javax.mail.NoSuchProviderException;
 import javax.mail.Session;
 import javax.mail.Store;
+import javax.mail.internet.InternetAddress;
 import javax.mail.search.FlagTerm;
+import javax.swing.AbstractAction;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.WindowConstants;
 
 /**
  *
  * @author larand
  */
-public class CheckMailFolder implements Runnable {
-    public Thread activity = new Thread(this);
+public class CheckMailFolder extends TimerTask {
     private final String folderName;
-    private final long interval;
     private final String backgroundColor;
     private final String user;
     private final String passw;
@@ -33,11 +49,10 @@ public class CheckMailFolder implements Runnable {
     private final String name;
     private Folder inbox;
     
-    public CheckMailFolder(String aName, String aFolderName, String aColor, int aInterval, String aUser, String aPassw, String aServer) {
+    public CheckMailFolder(String aName, String aFolderName, String aColor, String aUser, String aPassw, String aServer) {
         name = aName;
         folderName = aFolderName;
         backgroundColor = aColor;
-        interval = aInterval * 1000; // millisec to sec.
         user = aUser;
         passw = aPassw;
         server = aServer;
@@ -45,12 +60,18 @@ public class CheckMailFolder implements Runnable {
     
     @Override
     public void run() {
-        while (XThread.delay(interval)) {
-           checkForNewMail();  
+        Message[] messages;
+        if  ((messages = checkForNewMail())!= null) {
+            try {  
+                printAllMessages(messages);
+            } catch (Exception ex) {
+                Logger.getLogger(CheckMailFolder.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
     
-    private void checkForNewMail() {
+    private Message[] checkForNewMail() {
+        Message messages[] = null;
         /*  Set the mail properties  */
         Properties props = System.getProperties();
         props.setProperty("mail.store.protocol", "imaps");
@@ -71,7 +92,7 @@ public class CheckMailFolder implements Runnable {
             inbox.open(Folder.READ_ONLY);
 
             /*  Get the messages which is unread in the Inbox*/
-            Message messages[] = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+            messages = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
 
             /* Use a suitable FetchProfile    */
             FetchProfile fp = new FetchProfile();
@@ -96,7 +117,88 @@ public class CheckMailFolder implements Runnable {
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
+        return messages;
         
     }
+    
+        public void printAllMessages(Message[] msgs) throws Exception {
+        String from;
+        Address[] a;
+        for (int i = 0; i < msgs.length; i++) {
+            a = msgs[i].getFrom();
+            from = a == null ? null : ((InternetAddress) a[0]).getAddress();
+
+            System.out.println(name + " -- MESSAGE #" + (i + 1) + ":" + " From: "+ from + " Subject: "+msgs[i].getSubject());
+            printEnvelope(msgs[i],i,msgs.length);
+        }
+    }
+
+    /*  Print the envelope(FromAddress,ReceivedDate,Subject)  */
+    public void printEnvelope(Message message, int iMsgNo, int iNoOfMsg) throws Exception {
+        Address[] a;
+        String from = "Unknown";
+        iMsgNo = iMsgNo + 1;
+        String msgNo = String.valueOf(iMsgNo);
+        String noOfMsg = String.valueOf(iNoOfMsg);
+        // FROM
+        a = message.getFrom();
+        from = a == null ? null : ((InternetAddress) a[0]).getAddress();
+
+        String subject = message.getSubject();
+        Date receivedDate = message.getReceivedDate();
+        MailMessage(from, subject, receivedDate.toString(), msgNo, noOfMsg); //    System.out.println("Content : " + content);
+                //    getContent(message);
+    }
+
+    public void MailMessage(String aFrom, String aSubject, String aDate, String aMsgNo, String aNoOfMsg) {
+        String message = "Subject: " + aSubject;
+        String header = "Msg no: " + aMsgNo + "(" + aNoOfMsg + ")" + " Mail From: " + aFrom + " at " + aDate;
+        final JFrame frame = new JFrame();
+        frame.setSize(500, 125);
+        frame.setUndecorated(true);
+        frame.getContentPane().setBackground(Color.decode(backgroundColor));
+        frame.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 1.0f;
+        constraints.weighty = 1.0f;
+        constraints.insets = new Insets(5, 5, 5, 5);
+        constraints.fill = GridBagConstraints.BOTH;
+        JLabel headingLabel = new JLabel(header);
+        Icon headingIcon = null;
+        headingLabel.setIcon(headingIcon); // --- use image icon you want to be as heading image.
+        headingLabel.setOpaque(false);
+        frame.add(headingLabel, constraints);
+        constraints.gridx++;
+        constraints.weightx = 0f;
+        constraints.weighty = 0f;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.anchor = GridBagConstraints.NORTH;
+        JButton cloesButton = new JButton(new AbstractAction("X") {
+            @Override
+            public void actionPerformed(final ActionEvent e) {
+                frame.dispose();
+            }
+        });
+        cloesButton.setMargin(new Insets(1, 4, 1, 4));
+        cloesButton.setFocusable(false);
+        frame.add(cloesButton, constraints);
+        constraints.gridx = 0;
+        constraints.gridy++;
+        constraints.weightx = 1.0f;
+        constraints.weighty = 1.0f;
+        constraints.insets = new Insets(5, 5, 5, 5);
+        constraints.fill = GridBagConstraints.BOTH;
+        JLabel messageLabel = new JLabel("<HtMl>" + message
+        );
+        frame.add(messageLabel, constraints);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();// size of the screen
+        Insets toolHeight = Toolkit.getDefaultToolkit().getScreenInsets(frame.getGraphicsConfiguration());// height of the task bar
+        frame.setLocation(scrSize.width - frame.getWidth(), scrSize.height - toolHeight.bottom - frame.getHeight());
+        frame.setVisible(true);
+    }
+
     
 }
