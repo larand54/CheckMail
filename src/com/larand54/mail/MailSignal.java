@@ -40,8 +40,6 @@ public class MailSignal {
                     t.cancel();
                 }
             });
-        while (true) {
-        }
     }
 
 }
