@@ -3,6 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+// Version 0.900
 package com.larand54.mail;
 
 import java.io.FileInputStream;
