@@ -175,15 +175,15 @@ public class CheckMailFolder extends TimerTask {
         constraints.weighty = 0f;
         constraints.fill = GridBagConstraints.NONE;
         constraints.anchor = GridBagConstraints.NORTH;
-        JButton cloesButton = new JButton(new AbstractAction("X") {
+        JButton closeButton = new JButton(new AbstractAction("X") {
             @Override
             public void actionPerformed(final ActionEvent e) {
                 frame.dispose();
             }
         });
-        cloesButton.setMargin(new Insets(1, 4, 1, 4));
-        cloesButton.setFocusable(false);
-        frame.add(cloesButton, constraints);
+        closeButton.setMargin(new Insets(1, 4, 1, 4));
+        closeButton.setFocusable(false);
+        frame.add(closeButton, constraints);
         constraints.gridx = 0;
         constraints.gridy++;
         constraints.weightx = 1.0f;
