@@ -12,8 +12,11 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -48,6 +51,8 @@ public class CheckMailFolder extends TimerTask {
     private final String server;
     private final String name;
     private Folder inbox;
+    private HashMap msgIds = new HashMap();
+    private Message[] messages;
     
     public CheckMailFolder(String aName, String aFolderName, String aColor, String aUser, String aPassw, String aServer) {
         name = aName;
@@ -60,7 +65,6 @@ public class CheckMailFolder extends TimerTask {
     
     @Override
     public void run() {
-        Message[] messages;
         if  ((messages = checkForNewMail())!= null) {
             try {  
                 printAllMessages(messages);
@@ -124,11 +128,15 @@ public class CheckMailFolder extends TimerTask {
         public void printAllMessages(Message[] msgs) throws Exception {
         String from;
         Address[] a;
+        int j;
         for (int i = 0; i < msgs.length; i++) {
+            if (msgIds.containsKey(msgs[i].getMessageNumber()))
+                    continue;
+            msgIds.put(msgs[i].getMessageNumber(),msgs[i]);
             a = msgs[i].getFrom();
             from = a == null ? null : ((InternetAddress) a[0]).getAddress();
 
-            System.out.println(name + " -- MESSAGE #" + (i + 1) + ":" + " From: "+ from + " Subject: "+msgs[i].getSubject());
+            System.out.println(name + " -- MESSAGE #" + (i + 1) + ":" + " From: "+ from + " Subject: "+msgs[i].getSubject() + "msgIds: " + msgIds.get(msgs[i].getMessageNumber()) + "Hash: "+msgs[i].getMessageNumber() );
             printEnvelope(msgs[i],i,msgs.length);
         }
     }
@@ -146,11 +154,12 @@ public class CheckMailFolder extends TimerTask {
 
         String subject = message.getSubject();
         Date receivedDate = message.getReceivedDate();
-        MailMessage(from, subject, receivedDate.toString(), msgNo, noOfMsg); //    System.out.println("Content : " + content);
+        MailMessage(message, from, subject, receivedDate.toString(), msgNo, noOfMsg); //    System.out.println("Content : " + content);
                 //    getContent(message);
     }
 
-    public void MailMessage(String aFrom, String aSubject, String aDate, String aMsgNo, String aNoOfMsg) {
+    public void MailMessage(Message aMessage, String aFrom, String aSubject, String aDate, String aMsgNo, String aNoOfMsg) {
+        final Message MailMsg = aMessage;
         String message = "Subject: " + aSubject;
         String header = "Msg no: " + aMsgNo + "(" + aNoOfMsg + ")" + " Mail From: " + aFrom + " at " + aDate;
         final JFrame frame = new JFrame();
@@ -177,13 +186,16 @@ public class CheckMailFolder extends TimerTask {
         constraints.anchor = GridBagConstraints.NORTH;
         JButton closeButton = new JButton(new AbstractAction("X") {
             @Override
+            
             public void actionPerformed(final ActionEvent e) {
+                msgIds.remove(MailMsg.getMessageNumber());
                 frame.dispose();
             }
         });
         closeButton.setMargin(new Insets(1, 4, 1, 4));
         closeButton.setFocusable(false);
         frame.add(closeButton, constraints);
+               
         constraints.gridx = 0;
         constraints.gridy++;
         constraints.weightx = 1.0f;
